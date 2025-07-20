@@ -1,0 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #120f18;
+  color: white;
+  font-family: 'Inter', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.image-inverted {
+  filter: invert(100%) hue-rotate(180deg);
+}
+
+.nav-link {
+  font-weight: 600;
+  text-transform: uppercase;
+  margin: 0 10px;
+  padding: 8px 20px;
+  border-radius: 10px;
+  text-decoration: none;
+  letter-spacing: 1px;
+  color: white;
+  background: transparent;
+  transition: all 0.3s ease-in-out;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
