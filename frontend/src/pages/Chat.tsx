@@ -8,12 +8,17 @@ import {
   Typography,
   createTheme,
   ThemeProvider,
+  CircularProgress,
+  Button,
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
-import { useRef, useState } from "react";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { sendChatRequest } from "../helpers/api";
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { coldarkCold } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import toast from "react-hot-toast";
+import { deleteUserChats, getUserChats } from "../helpers/api-communicator";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const theme = createTheme({
   palette: {
@@ -33,27 +38,75 @@ const theme = createTheme({
 
 const Chat = () => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const auth = useAuth();
+  const navigate = useNavigate();
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   const handleSend = async () => {
-    const message = inputRef.current?.value;
+    const message = inputRef.current?.value?.trim();
     if (!message) return;
-  
+
     setMessages((prev) => [...prev, { role: "user", content: message }]);
     inputRef.current!.value = "";
-  
+    setLoading(true);
+
     try {
       const data = await sendChatRequest(message);
-      console.log("📦 Received from backend:", data);
-  
       const aiText = data?.message?.trim() || "No response";
-  
       setMessages((prev) => [...prev, { role: "model", content: aiText }]);
     } catch (err) {
-      console.error("❌ Error fetching AI response:", err);
+      console.error("Error fetching AI response:", err);
       setMessages((prev) => [...prev, { role: "model", content: "Error occurred." }]);
+    } finally {
+      setLoading(false);
     }
   };
+
+  useLayoutEffect(() => {
+    if (auth?.isLoggedIn && auth.user) {
+      toast.loading("Loading Chats", { id: "loadchats" });
+      getUserChats()
+        .then((data) => {
+          setMessages([...data.chats]);
+          toast.success("Successfully loaded chats", { id: "loadchats" });
+        })
+        .catch((err) => {
+          console.log(err);
+          toast.error("Loading Failed", { id: "loadchats" });
+        });
+    }
+  }, [auth]);
+
+  const handleDeletechats = async () => {
+    try {
+      toast.loading("Deleting Chats", { id: "deletechats" });
+      await deleteUserChats();
+      setMessages([]);
+      toast.success("Chats Deleted!", { id: "deletechats" });
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed", { id: "deletechats" });
+    }
+  };
+
+  useEffect(() => {
+    if (!auth?.user) {
+      navigate("/login");
+    }
+  }, [auth, navigate]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
   
   return (
     <ThemeProvider theme={theme}>
@@ -66,11 +119,44 @@ const Chat = () => {
           flexDirection: "column",
         }}
       >
-        <Container maxWidth="md" sx={{ flex: 1, py: 1 }}>
-          <Typography variant="h4" fontWeight={600} mb={2} fontFamily={"Inter,sans-serif"}>
-            What's today's agenda?
-          </Typography>
+        <Container maxWidth={false} sx={{ flex: 1, py: 1, px: 2 }}>
+          {/* Header */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <Typography
+              variant="h4"
+              fontWeight={600}
+              fontFamily={"Inter,sans-serif"}
+            >
+              What's today's agenda?
+            </Typography>
 
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteIcon />}
+              onClick={handleDeletechats}
+              sx={{
+                textTransform: "none",
+                borderColor: "#ff1744",
+                color: "#ff1744",
+                "&:hover": {
+                  backgroundColor: "#2b1a1a",
+                  borderColor: "#ff1744",
+                },
+              }}
+            >
+              Delete Chats
+            </Button>
+          </Box>
+
+          {/* Chat Area */}
           <Box
             sx={{
               height: "70vh",
@@ -98,8 +184,10 @@ const Chat = () => {
                     py: 1,
                     bgcolor: msg.role === "user" ? "#2979ff" : "#333",
                     color: "#fff",
-                    maxWidth: "100%",
+                    maxWidth: "75%",
                     borderRadius: "15px",
+                    borderTopRightRadius: msg.role === "user" ? 0 : "15px",
+                    borderTopLeftRadius: msg.role === "user" ? "15px" : 0,
                   }}
                 >
                   <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }}>
@@ -108,8 +196,20 @@ const Chat = () => {
                 </Paper>
               </Box>
             ))}
+
+            {loading && (
+              <Box sx={{ display: "flex", alignItems: "center", pl: 1 }}>
+                <CircularProgress size={20} sx={{ mr: 1 }} />
+                <Typography variant="body2" color="gray">
+                  Thinking...
+                </Typography>
+              </Box>
+            )}
+
+            <div ref={messagesEndRef} />
           </Box>
 
+          {/* Input Area */}
           <Paper
             component="form"
             onSubmit={(e) => {
@@ -123,6 +223,7 @@ const Chat = () => {
               px: 3,
               py: 1,
               borderRadius: "10px",
+              width: "100%",
             }}
           >
             <InputBase
