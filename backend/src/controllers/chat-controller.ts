@@ -1,18 +1,30 @@
-// backend/controllers/chat-controller.ts
 import { NextFunction, Request, Response } from "express";
 import User from "../models/User.js";
 import { configureGemini } from "../config/configureGemini.js";
 
+// Helper to access Clerk Auth Object
+interface ClerkRequest extends Request {
+  auth: {
+    userId: string;
+  };
+}
+
 export const generateGeminiChatCompletion = async (req: Request, res: Response) => {
-  const userId = res.locals.jwtData?.id;
   const { message } = req.body;
+  
+  // 1. Get the Clerk ID from the request
+  const { userId } = (req as ClerkRequest).auth;
 
   try {
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    // 2. Find the user by their Clerk ID
+    const user = await User.findOne({ clerkId: userId });
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not linked to database." });
+    }
 
+    // ... Existing Gemini Logic ...
     const model = configureGemini();
-
     const chat = model.startChat({
       history: user.chats.map((chat) => ({
         role: chat.role,
@@ -24,7 +36,6 @@ export const generateGeminiChatCompletion = async (req: Request, res: Response) 
     });
 
     const result = await chat.sendMessage(message);
-    console.log("🔍 Gemini Raw Response:\n", JSON.stringify(result.response, null, 2));
     const response = await result.response.text();
 
     user.chats.push({ role: "user", content: message });
@@ -44,23 +55,20 @@ export const sendChatsToUser = async (
   next: NextFunction
 ) => {
   try {
-    //user token check
-    const user = await User.findById(res.locals.jwtData.id);
+    const { userId } = (req as ClerkRequest).auth;
+    const user = await User.findOne({ clerkId: userId });
+
     if (!user) {
-      return res.status(401).send("User not registered OR Token malfunctioned");
+      return res.status(401).send("User not found in database");
     }
-    if (user._id.toString() !== res.locals.jwtData.id) {
-      return res.status(401).send("Permissions didn't match");
-    }
-    return res
-      .status(200)
-      .json({ message: "OK", chats: user.chats });
-  } catch (error) {
+
+    // Permissions are implicitly checked by finding the user via their auth ID
+    return res.status(200).json({ message: "OK", chats: user.chats });
+  } catch (error: any) {
     console.log(error);
-    return res.status(200).json({ message: "ERROR", cause: error.message });
+    return res.status(500).json({ message: "ERROR", cause: error.message });
   }
 };
-
 
 export const deleteUserChats = async (
   req: Request,
@@ -68,22 +76,20 @@ export const deleteUserChats = async (
   next: NextFunction
 ) => {
   try {
-    //user token check
-    const user = await User.findById(res.locals.jwtData.id);
+    const { userId } = (req as ClerkRequest).auth;
+    const user = await User.findOne({ clerkId: userId });
+
     if (!user) {
-      return res.status(401).send("User not registered OR Token malfunctioned");
+      return res.status(401).send("User not found");
     }
-    if (user._id.toString() !== res.locals.jwtData.id) {
-      return res.status(401).send("Permissions didn't match");
-    }
+
     // @ts-ignore
-    user.chats= [];
+    user.chats = [];
     await user.save();
-    return res
-      .status(200)
-      .json({ message: "OK", chats: user.chats });
-  } catch (error) {
+    
+    return res.status(200).json({ message: "OK", chats: user.chats });
+  } catch (error: any) {
     console.log(error);
-    return res.status(200).json({ message: "ERROR", cause: error.message });
+    return res.status(500).json({ message: "ERROR", cause: error.message });
   }
 };

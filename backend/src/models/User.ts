@@ -1,5 +1,7 @@
+// backend/models/User.ts
 import mongoose from "mongoose";
 import { randomUUID } from "crypto";
+
 const chatSchema = new mongoose.Schema({
   id: {
     type: String,
@@ -14,6 +16,7 @@ const chatSchema = new mongoose.Schema({
     required: true,
   },
 });
+
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -24,9 +27,16 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
-  password: {
+  // 1. New Field: The link to Clerk
+  clerkId: {
     type: String,
     required: true,
+    unique: true, 
+  },
+  // 2. Updated Field: Password is no longer required
+  password: {
+    type: String,
+    required: false, // Changed from true
   },
   chats: [chatSchema],
 });
