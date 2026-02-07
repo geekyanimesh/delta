@@ -1,4 +1,3 @@
-// src/pages/Chat.tsx
 import {
   Box,
   Container,
@@ -14,12 +13,12 @@ import {
 import SendIcon from "@mui/icons-material/Send";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { sendChatRequest } from "../helpers/api";
 import toast from "react-hot-toast";
-import { deleteUserChats, getUserChats } from "../helpers/api-communicator";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
+// Theme Configuration
 const theme = createTheme({
   palette: {
     mode: "dark",
@@ -39,75 +38,96 @@ const theme = createTheme({
 const Chat = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
+  
+  // State
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const auth = useAuth();
+  // Clerk Hooks
+  const { getToken } = useAuth();
+  const { user } = useUser();
   const navigate = useNavigate();
 
+  // Scroll to bottom helper
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
-
-  const handleSend = async () => {
-    const message = inputRef.current?.value?.trim();
-    if (!message) return;
-
-    setMessages((prev) => [...prev, { role: "user", content: message }]);
-    inputRef.current!.value = "";
-    setLoading(true);
-
-    try {
-      const data = await sendChatRequest(message);
-      const aiText = data?.message?.trim() || "No response";
-      setMessages((prev) => [...prev, { role: "model", content: aiText }]);
-    } catch (err) {
-      console.error("Error fetching AI response:", err);
-      setMessages((prev) => [...prev, { role: "model", content: "Error occurred." }]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useLayoutEffect(() => {
-    if (auth?.isLoggedIn && auth.user) {
-      toast.loading("Loading Chats", { id: "loadchats" });
-      getUserChats()
-        .then((data) => {
-          setMessages([...data.chats]);
-          toast.success("Successfully loaded chats", { id: "loadchats" });
-        })
-        .catch((err) => {
-          console.log(err);
-          toast.error("Loading Failed", { id: "loadchats" });
-        });
-    }
-  }, [auth]);
-
-  const handleDeletechats = async () => {
-    try {
-      toast.loading("Deleting Chats", { id: "deletechats" });
-      await deleteUserChats();
-      setMessages([]);
-      toast.success("Chats Deleted!", { id: "deletechats" });
-    } catch (error) {
-      console.log(error);
-      toast.error("Failed", { id: "deletechats" });
-    }
-  };
-
-  useEffect(() => {
-    if (!auth?.user) {
-      navigate("/login");
-    }
-  }, [auth, navigate]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  
+  // 1. LOAD CHATS (On Mount)
+  useLayoutEffect(() => {
+    if (user) {
+      const loadChats = async () => {
+        toast.loading("Loading Chats", { id: "loadchats" });
+        try {
+          const token = await getToken();
+          const res = await axios.get("/chat/all-chats", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          
+          setMessages(res.data.chats);
+          toast.success("Successfully loaded chats", { id: "loadchats" });
+        } catch (err) {
+          console.error(err);
+          toast.error("Loading Failed", { id: "loadchats" });
+        }
+      };
+      loadChats();
+    }
+  }, [user, getToken]);
+
+  // 2. SEND MESSAGE
+  const handleSend = async () => {
+    const message = inputRef.current?.value?.trim();
+    if (!message) return;
+
+    // Optimistic UI Update
+    setMessages((prev) => [...prev, { role: "user", content: message }]);
+    inputRef.current!.value = "";
+    setLoading(true);
+
+    try {
+      const token = await getToken();
+      
+      // Send to Backend with Token
+      const res = await axios.post(
+        "/chat/new",
+        { message },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const aiText = res.data.message || "No response";
+      setMessages((prev) => [...prev, { role: "model", content: aiText }]);
+    } catch (err) {
+      console.error("Error fetching AI response:", err);
+      setMessages((prev) => [...prev, { role: "model", content: "Error occurred." }]);
+      toast.error("Failed to send message");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 3. DELETE CHATS
+  const handleDeletechats = async () => {
+    try {
+      toast.loading("Deleting Chats", { id: "deletechats" });
+      const token = await getToken();
+      
+      await axios.delete("/chat/delete", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      setMessages([]);
+      toast.success("Chats Deleted!", { id: "deletechats" });
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to delete", { id: "deletechats" });
+    }
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <Box

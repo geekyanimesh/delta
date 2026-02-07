@@ -4,6 +4,7 @@ import Logo from "./shared/Logo";
 import NavigationLink from "./shared/NavigationLink";
 import { SignedIn, SignedOut, UserButton, useClerk } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import { Box } from "@mui/material";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -11,52 +12,49 @@ const Header = () => {
 
   return (
     <AppBar
-      sx={{ bgcolor: "transparent", position: "static", boxShadow: "none" }}
+      sx={{
+        bgcolor: "transparent",
+        position: "static",
+        boxShadow: "none",
+        // 1. Ensure Header stays ON TOP of the Home page
+        zIndex: 50, 
+      }}
     >
-      <Toolbar sx={{ display: "flex" }}>
-        <Logo />
+      <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+        
+        {/* 2. Logo Wrapper: Invert colors if needed to make it black */}
+        <Box sx={{ 
+          filter: "invert(1)", // Makes white logo black. Remove this line if your Logo is already black.
+          display: "flex", 
+          alignItems: "center" 
+        }}>
+          <Logo />
+        </Box>
+
         <div>
-          {/* 1. Show this block if Logged In */}
           <SignedIn>
             <NavigationLink
-              bg="#00fffc"
+              bg="#000" // Black button
               to="/chat"
               text="Go To Chat"
-              textColor="black"
+              textColor="white" 
             />
             
-            {/* Standard Clerk User Button (Avatar)
-               Includes: Profile Management, Security Settings, and Logout 
-            */}
             <div style={{ display: "inline-block", marginLeft: "15px", verticalAlign: "middle" }}>
                <UserButton afterSignOutUrl="/" />
             </div>
-
-            {/* (Optional) Your Custom Logout Button
-               If you prefer this text button over the Avatar above, you can keep it.
-               Otherwise, you can delete this NavigationLink.
-            */}
-            {/* <NavigationLink
-              bg="#51538f"
-              textColor="white"
-              to="/"
-              text="logout"
-              onClick={() => signOut({ redirectUrl: '/' })}
-            /> 
-            */}
           </SignedIn>
 
-          {/* 2. Show this block if Logged Out */}
           <SignedOut>
             <NavigationLink
-              bg="rgb(255, 255, 255)"
+              bg="#000" // Black button
               to="/login"
               text="Login"
-              textColor="black"
+              textColor="white"
             />
             <NavigationLink
-              bg="#51538f"
-              textColor="white"
+              bg="#fff"
+              textColor="black"
               to="/signup"
               text="Signup"
             />

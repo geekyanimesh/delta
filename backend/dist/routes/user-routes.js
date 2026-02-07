@@ -1,13 +1,9 @@
 import { Router } from "express";
-import { getAllUsers, userLogin, userSignup, verifyUser } from "../controllers/user-controllers.js";
-import { validate, signupValidator, loginValidator } from "../utils/validators.js";
-import { verifyToken } from "../utils/token-manager.js";
-import { userLogout } from "../controllers/user-controllers.js";
+import { getAllUsers, syncUser } from "../controllers/user-controllers.js";
+import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
 const userRoutes = Router();
 userRoutes.get("/", getAllUsers);
-userRoutes.post("/signup", validate(signupValidator), userSignup);
-userRoutes.post("/login", validate(loginValidator), userLogin);
-userRoutes.get("/auth-status", verifyToken, verifyUser);
-userRoutes.post("/logout", verifyToken, userLogout); // ✅ protected route
+userRoutes.post("/sync", ClerkExpressRequireAuth(), //  Protects the route
+syncUser);
 export default userRoutes;
 //# sourceMappingURL=user-routes.js.map

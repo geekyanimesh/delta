@@ -15,19 +15,15 @@ import {
   useAuth 
 } from "@clerk/clerk-react";
 
-// --- NEW COMPONENT: Syncs Clerk User to MongoDB ---
 const AuthSync = () => {
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
 
   useEffect(() => {
     const syncToBackend = async () => {
-      // Only sync if user is fully loaded and logged in
       if (isLoaded && user) {
         try {
           const token = await getToken();
-          
-          // Send user data to your backend to create/update them in MongoDB
           await axios.post(
             "/user/sync", 
             {
@@ -35,9 +31,7 @@ const AuthSync = () => {
               email: user.primaryEmailAddress?.emailAddress,
             },
             {
-              headers: {
-                Authorization: `Bearer ${token}`, // Attach Clerk Token
-              },
+              headers: { Authorization: `Bearer ${token}` },
             }
           );
           console.log("✅ User Synced with MongoDB");
@@ -46,43 +40,54 @@ const AuthSync = () => {
         }
       }
     };
-
     syncToBackend();
   }, [isLoaded, user, getToken]);
 
-  return null; // This component is invisible
+  return null;
 };
-// --------------------------------------------------
 
 function App() {
   return (
     <main>
-      {/* 1. Run the Sync Logic */}
       <AuthSync />
-      
       <Header />
       <Routes>
         <Route path="/" element={<Home />} />
 
-        {/* 2. Clerk Authentication Routes */}
+        {/* UPDATED: Login Route 
+           Used inline styles to force center alignment vertically and horizontally 
+        */}
         <Route 
           path="/login/*" 
           element={
-            <div className="flex justify-center mt-20">
+            <div style={{ 
+              display: "flex", 
+              justifyContent: "center", 
+              alignItems: "center", 
+              height: "80vh", // Takes up 80% of the screen height
+              width: "100%" 
+            }}>
               <SignIn routing="path" path="/login" />
             </div>
           } 
         />
+
+        {/* UPDATED: Signup Route */}
         <Route 
           path="/signup/*" 
           element={
-            <div className="flex justify-center mt-20">
+            <div style={{ 
+              display: "flex", 
+              justifyContent: "center", 
+              alignItems: "center", 
+              height: "80vh",
+              width: "100%" 
+            }}>
               <SignUp routing="path" path="/signup" />
             </div>
           } 
         />
 
-        {/* 3. Protected Chat Route */}
         <Route
           path="/chat"
           element={
