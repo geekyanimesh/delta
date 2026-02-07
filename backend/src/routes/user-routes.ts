@@ -30,3 +30,5 @@ userRouter.post("/clerk-webhook", async (req, res) => {
     return res.status(400).json({ message: "Webhook verification failed" });
   }
 });
+
+export default userRouter;
