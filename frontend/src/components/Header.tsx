@@ -1,45 +1,55 @@
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
-import Logo from "./shared/Logo";
 import NavigationLink from "./shared/NavigationLink";
-import { SignedIn, SignedOut, UserButton, useClerk } from "@clerk/clerk-react";
-import { useNavigate } from "react-router-dom";
+import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
 import { Box } from "@mui/material";
+import { Link } from "react-router-dom"; // Import Link for hyperlinking
 
 const Header = () => {
-  const navigate = useNavigate();
-  const { signOut } = useClerk();
-
   return (
     <AppBar
       sx={{
-        bgcolor: "transparent",
+        bgcolor: "#000000",
         position: "static",
         boxShadow: "none",
-        // 1. Ensure Header stays ON TOP of the Home page
-        zIndex: 50, 
+        height: "70px", 
+        display: "flex",
+        justifyContent: "center",
       }}
     >
-      <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-        
-        {/* 2. Logo Wrapper: Invert colors if needed to make it black */}
-        <Box sx={{ 
-          filter: "invert(1)", // Makes white logo black. Remove this line if your Logo is already black.
+      <Toolbar 
+        sx={{ 
           display: "flex", 
-          alignItems: "center" 
-        }}>
-          <Logo />
+          justifyContent: "space-between", 
+          minHeight: "70px !important",
+          px: "20px" 
+        }}
+      >
+        {/* LOGO: Wrapped in a Link to make it a hyperlink to the homepage */}
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+            <img 
+              src="/detlaLogo.png" 
+              alt="Delta" 
+              style={{ 
+                height: "150px", 
+                width: "auto",
+                filter: "invert(1)", // Ensures visibility on black header
+                display: "block",
+                cursor: "pointer"
+              }} 
+            />
+          </Link>
         </Box>
 
-        <div>
+        <Box sx={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <SignedIn>
             <NavigationLink
-              bg="#000" // Black button
+              bg="#ffffff"
               to="/chat"
               text="Go To Chat"
-              textColor="white" 
+              textColor="black"
             />
-            
             <div style={{ display: "inline-block", marginLeft: "15px", verticalAlign: "middle" }}>
                <UserButton afterSignOutUrl="/" />
             </div>
@@ -47,19 +57,19 @@ const Header = () => {
 
           <SignedOut>
             <NavigationLink
-              bg="#000" // Black button
+              bg="#ffffff"
               to="/login"
               text="Login"
-              textColor="white"
+              textColor="black"
             />
             <NavigationLink
-              bg="#fff"
-              textColor="black"
+              bg="#ffffff"
               to="/signup"
               text="Signup"
+              textColor="black"
             />
           </SignedOut>
-        </div>
+        </Box>
       </Toolbar>
     </AppBar>
   );

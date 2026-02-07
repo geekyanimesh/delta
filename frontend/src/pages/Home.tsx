@@ -7,101 +7,83 @@ const Home = () => {
     <div 
       style={{
         width: '100%',
-        height: 'calc(100vh - 70px)', // Subtract Header height to avoid scrollbar
+        height: 'calc(100vh - 70px)', // Height minus header
         backgroundColor: '#ffffff',
-        color: '#000000',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-        overflow: 'hidden',
-        // REMOVED: position: absolute, top: 0, zIndex: 9999 (These were hiding the header)
+        fontFamily: "'Inter', sans-serif",
+        position: 'relative', // Necessary for absolute footer positioning
       }}
     >
-      
-      {/* Background Pattern */}
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
-        backgroundSize: '20px 20px',
-        opacity: 0.5,
-        pointerEvents: 'none',
-        zIndex: 0
-      }}></div>
-
-      {/* Main Content */}
-      <div style={{ zIndex: 10, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        
-        <div style={{ marginBottom: '40px' }}>
-          <img 
-            src="detlaLogo.png" 
-            alt="Delta" 
-            style={{ 
-              width: '200px', 
-              filter: 'invert(1)', 
-              display: 'block'
-            }} 
-          />
-        </div>
-
+      {/* Center Content Section */}
+      <div style={{ 
+        transform: 'scale(0.85)', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center',
+        textAlign: 'center',
+      }}>
         <div style={{ 
-          fontSize: '30px', 
-          fontWeight: 600, 
+          fontSize: '3.5rem', 
+          fontWeight: 700, 
           marginBottom: '20px',
-          minHeight: '60px', 
-          color: '#333'      
+          minHeight: '80px', 
+          color: '#000000', 
         }}>
           <TypingAnim />
         </div>
 
         <p style={{ 
-          fontSize: '18px', 
-          color: '#666', 
-          maxWidth: '600px', 
+          fontSize: '1.25rem', 
+          color: '#333333', 
           lineHeight: '1.6',
-          marginBottom: '50px' 
+          marginBottom: '50px',
         }}>
-          Experience the power of intelligent conversations. <br/>
+          Your intelligent companion for the future. <br/>
           Built for speed, precision, and simplicity.
         </p>
 
-        <div style={{ display: 'flex', gap: '20px' }}>
-          <Link to="/chat">
-            <button style={{
-              padding: '14px 40px',
-              backgroundColor: '#000',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '16px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              boxShadow: '0 4px 14px 0 rgba(0,0,0,0.2)'
-            }}>
-              Get Started
-            </button>
-          </Link>
-          
+        <Link to="/chat">
           <button style={{
-            padding: '14px 40px',
-            backgroundColor: '#fff',
-            color: '#333',
-            border: '1px solid #ddd',
-            borderRadius: '8px',
-            fontSize: '16px',
+            padding: '16px 50px',
+            backgroundColor: '#000000',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '50px',
+            fontSize: '18px',
             fontWeight: 600,
-            cursor: 'pointer'
+            cursor: 'pointer',
+            boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
           }}>
-            Learn More
+            Get Started
           </button>
-        </div>
+        </Link>
       </div>
 
-      <div style={{ position: 'absolute', bottom: '30px', color: '#999', fontSize: '14px' }}>
-        © 2026 Delta Systems
-      </div>
+      {/* --- REFINED FOOTER --- */}
+      <footer style={{
+        position: 'absolute',
+        bottom: '0',
+        width: '100%',
+        padding: '20px 0',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '10px',
+        borderTop: '1px solid #f0f0f0' // Very subtle line
+      }}>
+        <div style={{ display: 'flex', gap: '20px', fontSize: '14px', color: '#666' }}>
+          <Link to="/about" style={{ textDecoration: 'none', color: 'inherit' }}>About</Link>
+          <Link to="/privacy" style={{ textDecoration: 'none', color: 'inherit' }}>Privacy</Link>
+          <Link to="/terms" style={{ textDecoration: 'none', color: 'inherit' }}>Terms</Link>
+          <a href="mailto:support@delta.ai" style={{ textDecoration: 'none', color: 'inherit' }}>Contact</a>
+        </div>
+        <p style={{ margin: 0, fontSize: '12px', color: '#999', fontWeight: 400 }}>
+          © 2026 Delta Systems. All rights reserved.
+        </p>
+      </footer>
     </div>
   )
 }
