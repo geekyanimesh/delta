@@ -1,68 +1,52 @@
 import axios from "axios";
-export const loginUser = async (email: string, password: string) => {
-  const res = await axios.post("/user/login", { email, password });
-  if (res.status !== 200) {
-    throw new Error("Unable to login");
-  }
-  const data = await res.data;
-  return data;
-};
 
-export const signupUser = async (
-  name: string,
-  email: string,
-  password: string
-) => {
-  const res = await axios.post("/user/signup", { name, email, password });
-  if (res.status !== 201) {
-    throw new Error("Unable to Signup");
-  }
-  const data = await res.data;
-  return data;
-};
+// 1. Create a configured Axios instance
+const api = axios.create({
+  baseURL: "http://localhost:5000/api/v1", // Adjust port if needed
+});
 
-export const checkAuthStatus = async () => {
-  const res = await axios.get("/user/auth-status");
+// 2. Helper to attach the token to every request
+// We don't use a global interceptor here to keep it simple for now.
+// You will pass the token from your React components.
+
+export const checkAuthStatus = async (token: string) => {
+  const res = await api.get("/user/auth-status", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   if (res.status !== 200) {
     throw new Error("Unable to authenticate");
   }
-  const data = await res.data;
-  return data;
+  return res.data;
 };
 
-export const sendChatRequest = async (message: string) => {
-  const res = await axios.post("/chat/new", { message });
+export const sendChatRequest = async (message: string, token: string) => {
+  const res = await api.post(
+    "/chat/new",
+    { message },
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
   if (res.status !== 200) {
     throw new Error("Unable to send chat");
   }
-  const data = await res.data;
-  return data;
+  return res.data;
 };
 
-export const getUserChats = async () => {
-  const res = await axios.get("/chat/all-chats");
+export const getUserChats = async (token: string) => {
+  const res = await api.get("/chat/all-chats", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   if (res.status !== 200) {
-    throw new Error("Unable to send chat");
+    throw new Error("Unable to fetch chats");
   }
-  const data = await res.data;
-  return data;
+  return res.data;
 };
 
-export const deleteUserChats = async () => {
-  const res = await axios.delete("/chat/delete");
-  if (res.status !== 200) {
-    throw new Error("Unable to delete chats");
-  }
-  const data = await res.data;
-  return data;
-};
-
-export const logoutUser = async () => {
-  const res = await axios.post("/user/logout");
+export const deleteUserChats = async (token: string) => {
+  const res = await api.delete("/chat/delete", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   if (res.status !== 200) {
     throw new Error("Unable to delete chats");
   }
-  const data = await res.data;
-  return data;
+  return res.data;
 };
-

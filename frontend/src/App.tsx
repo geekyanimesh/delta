@@ -1,93 +1,68 @@
 import { useEffect } from "react";
-import Header from "./components/Header";
 import { Routes, Route } from "react-router-dom";
+import Header from "./components/Header";
 import Home from "./pages/Home";
 import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
-import axios from "axios";
 import { 
   SignIn, 
   SignUp, 
   SignedIn, 
   SignedOut, 
   RedirectToSignIn,
-  useUser,
   useAuth 
 } from "@clerk/clerk-react";
+import { checkAuthStatus } from "./helpers/api-communicator"; // Use our helper
 
-const AuthSync = () => {
-  const { user, isLoaded } = useUser();
-  const { getToken } = useAuth();
+function App() {
+  const { getToken, isSignedIn } = useAuth();
 
+  // This replaces your <AuthSync /> component
   useEffect(() => {
     const syncToBackend = async () => {
-      if (isLoaded && user) {
+      if (isSignedIn) {
         try {
           const token = await getToken();
-          await axios.post(
-            "/user/sync", 
-            {
-              name: user.fullName,
-              email: user.primaryEmailAddress?.emailAddress,
-            },
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
-          console.log("✅ User Synced with MongoDB");
+          if (token) {
+            // This GET request triggers the middleware to create/sync the user
+            const data = await checkAuthStatus(token);
+            console.log("✅ User Synced & Verified:", data);
+          }
         } catch (error) {
           console.error("❌ Sync Failed", error);
         }
       }
     };
     syncToBackend();
-  }, [isLoaded, user, getToken]);
+  }, [isSignedIn, getToken]);
 
-  return null;
-};
-
-function App() {
   return (
     <main>
-      <AuthSync />
       <Header />
       <Routes>
         <Route path="/" element={<Home />} />
 
-        {/* UPDATED: Login Route 
-           Used inline styles to force center alignment vertically and horizontally 
-        */}
+        {/* Login Route - Centered */}
         <Route 
           path="/login/*" 
           element={
-            <div style={{ 
-              display: "flex", 
-              justifyContent: "center", 
-              alignItems: "center", 
-              height: "80vh", // Takes up 80% of the screen height
-              width: "100%" 
-            }}>
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80vh", width: "100%" }}>
               <SignIn routing="path" path="/login" />
             </div>
           } 
         />
 
-        {/* UPDATED: Signup Route */}
+        {/* Signup Route - Centered */}
         <Route 
           path="/signup/*" 
           element={
-            <div style={{ 
-              display: "flex", 
-              justifyContent: "center", 
-              alignItems: "center", 
-              height: "80vh",
-              width: "100%" 
-            }}>
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80vh", width: "100%" }}>
               <SignUp routing="path" path="/signup" />
             </div>
           } 
         />
 
+        {/* Protected Chat Route */}
         <Route
           path="/chat"
           element={

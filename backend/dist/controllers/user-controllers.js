@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 export const getAllUsers = async (req, res, next) => {
     try {
+        // Optional: You might want to remove this in production or restrict it to admins
         const users = await User.find();
         return res.status(200).json({ message: "OK", users });
     }
@@ -9,25 +10,16 @@ export const getAllUsers = async (req, res, next) => {
         return res.status(500).json({ message: "ERROR", cause: error.message });
     }
 };
-// NEW: The Bridge between Clerk and MongoDB
-export const syncUser = async (req, res, next) => {
+export const verifyUser = async (req, res, next) => {
     try {
-        // 1. Get the Clerk ID from the verified token
-        const { userId } = req.auth;
-        const { name, email } = req.body;
-        // 2. Check if user exists in MongoDB
-        let user = await User.findOne({ clerkId: userId });
-        // 3. If not, create them
+        // 1. The Heavy Lifting is done!
+        // The middleware already found/created the user and put it in 'req.dbUser'
+        const user = req.dbUser;
         if (!user) {
-            user = new User({
-                name,
-                email,
-                clerkId: userId,
-                chats: []
-            });
-            await user.save();
+            return res.status(401).json({ message: "User authentication failed" });
         }
-        return res.status(200).json({ message: "User Synced", user });
+        // 2. Return the MongoDB user (which includes the _id we need for chats)
+        return res.status(200).json({ message: "OK", user });
     }
     catch (error) {
         console.log(error);
