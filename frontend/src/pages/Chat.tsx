@@ -24,13 +24,13 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import Header from "../components/Header";
 
-// GT-Standard alternative: Using 'Outfit' or 'Geist' (Inter as fallback)
+// Custom Theme with 'Outfit' for that GT-Standard look
 const theme = createTheme({
   palette: {
     mode: "dark",
     background: {
-      default: "#050505",
-      paper: "#111111",
+      default: "#050505", // Deep black like Home page
+      paper: "#111111",   // Darker gray for cards
     },
     text: {
       primary: "#ffffff",
@@ -38,43 +38,77 @@ const theme = createTheme({
     },
   },
   typography: {
-    // 'Outfit' is a very close free alternative to GT Walsheim/Standard
-    fontFamily: "'Outfit', 'Geist', 'Inter', sans-serif",
+    fontFamily: "'Outfit', 'Inter', 'Roboto', sans-serif",
   },
 });
 
+// Dedicated CodeBlock Component for Syntax Highlighting and Copying
 const CodeBlock = ({ language, value }: { language: string; value: string }) => {
   const [copied, setCopied] = useState(false);
+
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast.success("Code copied!");
+    } catch (err) {
+      toast.error("Failed to copy");
+    }
   };
 
   return (
-    <Box sx={{ position: "relative", my: 2, borderRadius: "12px", overflow: "hidden", border: "1px solid #27272a" }}>
-      <Tooltip title={copied ? "Copied!" : "Copy Code"}>
-        <IconButton
-          onClick={handleCopy}
-          size="small"
-          sx={{
-            position: "absolute",
-            top: 10,
-            right: 10,
-            color: copied ? "#3b82f6" : "#71717a",
-            bgcolor: "rgba(0,0,0,0.4)",
-            "&:hover": { bgcolor: "rgba(0,0,0,0.6)" },
-            zIndex: 10,
-          }}
-        >
-          {copied ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
-        </IconButton>
-      </Tooltip>
+    <Box 
+      sx={{ 
+        position: "relative", 
+        my: 3, 
+        borderRadius: "12px", 
+        overflow: "hidden", 
+        border: "1px solid #27272a",
+        backgroundColor: "#000"
+      }}
+    >
+      <Box 
+        sx={{ 
+          display: "flex", 
+          justifyContent: "space-between", 
+          alignItems: "center", 
+          px: 2, 
+          py: 1, 
+          bgcolor: "#1a1a1a",
+          borderBottom: "1px solid #27272a"
+        }}
+      >
+        <Typography variant="caption" sx={{ color: "#71717a", textTransform: "uppercase", fontWeight: 700 }}>
+          {language || "code"}
+        </Typography>
+        <Tooltip title={copied ? "Copied!" : "Copy Code"}>
+          <Button
+            onClick={handleCopy}
+            size="small"
+            startIcon={copied ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
+            sx={{ 
+              color: copied ? "#3b82f6" : "#a1a1aa", 
+              fontSize: "0.7rem",
+              textTransform: "none",
+              "&:hover": { color: "#fff" }
+            }}
+          >
+            {copied ? "Copied" : "Copy"}
+          </Button>
+        </Tooltip>
+      </Box>
       <SyntaxHighlighter
         language={language}
         style={atomDark}
         PreTag="div"
-        customStyle={{ background: "#000", padding: "1.5rem", margin: 0, fontSize: "0.9rem" }}
+        customStyle={{ 
+          background: "transparent", 
+          padding: "1.5rem", 
+          margin: 0, 
+          fontSize: "0.85rem",
+          lineHeight: "1.5"
+        }}
       >
         {value}
       </SyntaxHighlighter>
@@ -85,141 +119,245 @@ const CodeBlock = ({ language, value }: { language: string; value: string }) => 
 const Chat = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // State Management
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Hooks
   const { getToken } = useAuth();
   const { user } = useUser();
 
-  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  useEffect(() => scrollToBottom(), [messages]);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, loading]);
+
+  // Initial Sync with Backend
   useLayoutEffect(() => {
     if (user) {
       const loadChats = async () => {
-        const tid = "loadchats";
-        toast.loading("Syncing...", { id: tid });
+        const tid = "sync-id";
+        toast.loading("Syncing with Delta...", { id: tid });
         try {
           const token = await getToken();
-          const res = await axios.get("/chat/all-chats", { headers: { Authorization: `Bearer ${token}` } });
-          if (res.data.chats) setMessages(res.data.chats);
+          const res = await axios.get("/chat/all-chats", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          
+          if (res.data.chats) {
+            setMessages(res.data.chats);
+          }
           toast.success("Ready", { id: tid });
         } catch (err) {
-          toast.error("Failed to load history", { id: tid });
+          console.error(err);
+          toast.error("Failed to sync history", { id: tid });
         }
       };
       loadChats();
     }
   }, [user, getToken]);
 
+  // Handle Sending Messages
   const handleSend = async () => {
     const message = inputRef.current?.value?.trim();
     if (!message) return;
-    setMessages((prev) => [...prev, { role: "user", content: message }]);
+
+    // Reset Input
     if (inputRef.current) inputRef.current.value = "";
+
+    // Optimistic UI Update
+    setMessages((prev) => [...prev, { role: "user", content: message }]);
     setLoading(true);
+
     try {
       const token = await getToken();
-      const res = await axios.post("/chat/new", { message }, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.data.chats) setMessages(res.data.chats);
+      const res = await axios.post(
+        "/chat/new",
+        { message },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Final sync with backend source of truth
+      if (res.data.chats) {
+        setMessages(res.data.chats);
+      }
     } catch (err) {
-      toast.error("Message failed");
+      console.error("Chat Error:", err);
+      toast.error("Failed to reach Delta AI");
+      // Remove the optimistic message on failure
+      setMessages((prev) => prev.slice(0, -1));
     } finally {
       setLoading(false);
     }
   };
 
+  // Delete All Chats
   const handleDeletechats = async () => {
+    if (!window.confirm("Are you sure you want to clear your entire history?")) return;
+    
     try {
-      toast.loading("Clearing...", { id: "del" });
+      toast.loading("Clearing history...", { id: "del-chats" });
       const token = await getToken();
-      await axios.delete("/chat/delete", { headers: { Authorization: `Bearer ${token}` } });
+      await axios.delete("/chat/delete", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setMessages([]);
-      toast.success("Cleared", { id: "del" });
-    } catch (err) {
-      toast.error("Failed to clear", { id: "del" });
+      toast.success("History cleared", { id: "del-chats" });
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to delete", { id: "del-chats" });
     }
   };
 
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{ minHeight: "100vh", bgcolor: "background.default", color: "text.primary", display: "flex", flexDirection: "column" }}>
+      <Box 
+        sx={{ 
+          minHeight: "100vh", 
+          bgcolor: "background.default", 
+          color: "text.primary", 
+          display: "flex", 
+          flexDirection: "column" 
+        }}
+      >
         <Header />
-        
-        <Container maxWidth="md" sx={{ flex: 1, display: "flex", flexDirection: "column", pt: "90px", pb: "100px" }}>
-          
-          {/* TOP RIGHT CLEAR BUTTON */}
-          <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+
+        <Container 
+          maxWidth="md" 
+          sx={{ 
+            flex: 1, 
+            display: "flex", 
+            flexDirection: "column", 
+            pt: "100px", 
+            pb: "120px", // Increased padding for the fixed input area
+            position: "relative"
+          }}
+        >
+          {/* Header Controls */}
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 3 }}>
             <Button 
               size="small" 
-              variant="text"
-              startIcon={<DeleteIcon sx={{ fontSize: 16 }} />} 
+              variant="text" 
+              startIcon={<DeleteIcon sx={{ fontSize: 18 }} />} 
               onClick={handleDeletechats}
               sx={{ 
                 color: "#71717a", 
                 textTransform: "none", 
-                fontSize: "0.8rem",
-                borderRadius: "8px",
-                "&:hover": { color: "#ff4444", bgcolor: "rgba(255, 68, 68, 0.05)" } 
+                fontWeight: 600,
+                fontSize: "0.85rem",
+                "&:hover": { color: "#ff4444", bgcolor: "transparent" } 
               }}
             >
               Clear History
             </Button>
           </Box>
 
-          {/* Messages Area */}
-          <Box sx={{ flex: 1, overflowY: "auto" }}>
+          {/* Chat Messages Loop */}
+          <Box sx={{ flex: 1, overflowY: "auto", px: 1 }}>
             {messages.length === 0 && !loading && (
-              <Box sx={{ mt: 15, textAlign: "center" }}>
+              <Box sx={{ mt: 12, textAlign: "center" }}>
                 <Typography 
                   variant="h3" 
-                  fontWeight={600} 
+                  fontWeight={700} 
                   sx={{ 
-                    mb: 1.5, 
-                    color: "#ffffff",
-                    fontSize: { xs: "2.5rem", md: "3.5rem" },
-                    letterSpacing: "-1.5px"
+                    mb: 2, 
+                    fontSize: { xs: "2.4rem", md: "3.6rem" }, 
+                    letterSpacing: "-1.5px",
+                    color: "#fff"
                   }}
                 >
                   How can I help you?
                 </Typography>
                 <Typography variant="body1" sx={{ color: "text.secondary", fontSize: "1.1rem", opacity: 0.6 }}>
-                  Ask about anything.
+                  Ask anything—into the unknown.
                 </Typography>
               </Box>
             )}
 
             {messages.map((msg, idx) => (
-              <Box key={idx} sx={{ 
-                display: "flex", 
-                flexDirection: "column",
-                alignItems: msg.role === "user" ? "flex-end" : "flex-start", 
-                mb: 5 
-              }}>
-                <Typography variant="caption" sx={{ mb: 1, color: "text.secondary", fontWeight: 700, letterSpacing: "1px", opacity: 0.5 }}>
-                  {msg.role === "user" ? "YOU" : "DELTA AI"}
+              <Box 
+                key={idx} 
+                sx={{ 
+                  display: "flex", 
+                  flexDirection: "column", 
+                  alignItems: "flex-start", // Gemini layout: everything on left
+                  mb: 6 
+                }}
+              >
+                {/* Role Label */}
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    mb: 1.5, 
+                    color: "text.secondary", 
+                    fontWeight: 800, 
+                    letterSpacing: "1.2px", 
+                    opacity: 0.4,
+                    textTransform: "uppercase"
+                  }}
+                >
+                  {msg.role === "user" ? "You" : "Delta AI"}
                 </Typography>
-                <Paper elevation={0} sx={{ 
-                    px: 0, // No padding on AI paper for cleaner look
-                    py: 0,
-                    bgcolor: "transparent", 
-                    color: "#fff", 
-                    maxWidth: "95%", 
-                    width: "100%",
-                    borderRadius: "0",
-                }}>
+
+                {/* Message Content with Gemini-style Box for User */}
+                <Paper 
+                  elevation={0} 
+                  sx={{ 
+                    px: msg.role === "user" ? 2.5 : 0, 
+                    py: msg.role === "user" ? 2 : 0,
+                    bgcolor: msg.role === "user" ? "#161616" : "transparent", 
+                    border: msg.role === "user" ? "1px solid #27272a" : "none",
+                    color: "#efefef", 
+                    maxWidth: "100%", 
+                    width: "fit-content",
+                    borderRadius: "18px",
+                  }}
+                >
                   <ReactMarkdown
                     components={{
                       code({ node, inline, className, children, ...props }: any) {
                         const match = /language-(\w+)/.exec(className || "");
                         return !inline && match ? (
-                          <CodeBlock language={match[1]} value={String(children).replace(/\n$/, "")} />
+                          <CodeBlock 
+                            language={match[1]} 
+                            value={String(children).replace(/\n$/, "")} 
+                          />
                         ) : (
-                          <code className={className} {...props} style={{ background: "#27272a", padding: "3px 6px", borderRadius: "6px", fontSize: "0.9em" }}>
+                          <code 
+                            className={className} 
+                            {...props} 
+                            style={{ 
+                              background: "#27272a", 
+                              padding: "4px 8px", 
+                              borderRadius: "6px", 
+                              fontSize: "0.95em",
+                              fontFamily: "monospace" 
+                            }}
+                          >
                             {children}
                           </code>
                         );
                       },
-                      p: ({ children }) => <Typography variant="body1" sx={{ lineHeight: 1.8, color: "#e4e4e7", fontSize: "1.05rem" }}>{children}</Typography>
+                      p: ({ children }) => (
+                        <Typography 
+                          variant="body1" 
+                          sx={{ 
+                            lineHeight: 1.8, 
+                            color: "#e4e4e7", 
+                            fontSize: "1.1rem",
+                            whiteSpace: "pre-wrap" 
+                          }}
+                        >
+                          {children}
+                        </Typography>
+                      ),
+                      li: ({ children }) => (
+                        <li style={{ marginBottom: '8px', color: "#e4e4e7", fontSize: "1.1rem" }}>{children}</li>
+                      )
                     }}
                   >
                     {msg.content}
@@ -227,25 +365,33 @@ const Chat = () => {
                 </Paper>
               </Box>
             ))}
+
+            {/* Loading/Thinking Indicator */}
             {loading && (
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2, mt: 2 }}>
-                <CircularProgress size={14} sx={{ color: "#3b82f6" }} />
-                <Typography variant="body2" sx={{ color: "text.secondary", fontStyle: "italic", opacity: 0.7 }}>Thinking...</Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2.5, mt: 3, ml: 1 }}>
+                <CircularProgress size={18} thickness={5} sx={{ color: "#3b82f6" }} />
+                <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: 500, fontStyle: "italic", opacity: 0.8 }}>
+                  Thinking...
+                </Typography>
               </Box>
             )}
             <div ref={messagesEndRef} />
           </Box>
 
-          {/* Fixed Input Area */}
-          <Box sx={{ 
-            position: "fixed", 
-            bottom: 0, 
-            left: 0, 
-            width: "100%", 
-            bgcolor: "rgba(5,5,5,0.7)", 
-            backdropFilter: "blur(20px)",
-            pt: 2, pb: 5
-          }}>
+          {/* Fixed Input Area (Bottom) */}
+          <Box 
+            sx={{ 
+              position: "fixed", 
+              bottom: 0, 
+              left: 0, 
+              width: "100%", 
+              bgcolor: "rgba(5,5,5,0.85)", 
+              backdropFilter: "blur(24px)",
+              pt: 3, 
+              pb: 6,
+              zIndex: 10
+            }}
+          >
             <Container maxWidth="md">
               <Paper 
                 component="form" 
@@ -254,22 +400,42 @@ const Chat = () => {
                   display: "flex", 
                   alignItems: "center", 
                   bgcolor: "#111", 
-                  px: 2.5, py: 1.2, 
-                  borderRadius: "20px", 
+                  px: 3, 
+                  py: 1.5, 
+                  borderRadius: "24px", 
                   border: "1px solid #27272a",
-                  transition: "all 0.3s ease",
-                  boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
-                  "&:focus-within": { borderColor: "#3b82f6", boxShadow: "0 0 20px rgba(59, 130, 246, 0.15)" }
+                  boxShadow: "0 20px 50px rgba(0,0,0,0.6)",
+                  transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+                  "&:focus-within": { 
+                    borderColor: "#3b82f6", 
+                    boxShadow: "0 0 30px rgba(59, 130, 246, 0.18)",
+                    transform: "translateY(-2px)"
+                  }
                 }}
               >
                 <InputBase 
                   inputRef={inputRef} 
-                  sx={{ flex: 1, color: "#fff", fontSize: "1.05rem", ml: 1 }} 
-                  placeholder="Ask Delta..." 
+                  sx={{ 
+                    flex: 1, 
+                    color: "#fff", 
+                    fontSize: "1.1rem", 
+                    ml: 1,
+                    "& input::placeholder": { color: "#52525b", opacity: 1 }
+                  }} 
+                  placeholder="Ask Prakriti AI anything..." 
                   fullWidth 
                 />
-                <IconButton type="submit" sx={{ color: "#3b82f6", transition: "transform 0.2s", "&:hover": { transform: "scale(1.1)" } }}>
-                  <SendIcon fontSize="small" />
+                <IconButton 
+                  type="submit" 
+                  disabled={loading}
+                  sx={{ 
+                    color: "#3b82f6", 
+                    transition: "all 0.2s", 
+                    "&:hover": { transform: "scale(1.15) rotate(-10deg)" },
+                    "&:disabled": { color: "#27272a" }
+                  }}
+                >
+                  <SendIcon fontSize="medium" />
                 </IconButton>
               </Paper>
             </Container>
