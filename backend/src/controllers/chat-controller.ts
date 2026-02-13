@@ -32,8 +32,11 @@ export const generateGeminiChatCompletion = async (
 
     const chatSession = model.startChat({
       history: history,
+      // System instruction to enforce direct code output without fluff
+      systemInstruction: "You are a concise programming assistant. Provide code solutions directly. Do not provide line-by-line explanations or 'How to compile' sections. Use Markdown for all code blocks.",
       generationConfig: {
-        maxOutputTokens: 500,
+        maxOutputTokens: 2048, // Increased to prevent mid-sentence cutoffs
+        temperature: 0.2,      // Lowered for precise, deterministic code output
       },
     });
 
@@ -44,7 +47,8 @@ export const generateGeminiChatCompletion = async (
     user.chats.push({ role: "model", content: response });
     await user.save();
 
-    return res.status(200).json({ message: response });
+    // Returning the message and full chat history to sync the frontend
+    return res.status(200).json({ message: response, chats: user.chats });
     
   } catch (error) {
     console.error("Gemini AI Error:", error);
@@ -95,7 +99,7 @@ export const deleteUserChats = async (
       return res.status(401).send("User not found");
     }
 
-    // FIX: Clear array in-place to satisfy TypeScript Mongoose types
+    // Clear array in-place to satisfy TypeScript Mongoose types
     user.chats.splice(0, user.chats.length);
     
     await user.save();
