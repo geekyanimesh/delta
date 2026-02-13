@@ -7,11 +7,10 @@ import { BrowserRouter } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import axios from "axios";
 import { ClerkProvider } from "@clerk/clerk-react";
-// Import the AuthProvider we just fixed
 import { AuthProvider } from "./context/AuthContext"; 
 
-// --- FIX 1: Remove quotes around the variable ---
-axios.defaults.baseURL = import.meta.env.VITE_API_URL; 
+// --- UPDATED: Append /api/v1 to the base URL ---
+axios.defaults.baseURL = `${import.meta.env.VITE_API_URL}/api/v1`; 
 axios.defaults.withCredentials = true;
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -30,8 +29,6 @@ const theme = createTheme({
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
-      {/* --- FIX 2: Wrap App in AuthProvider --- */}
-      {/* This allows useAuth() to work inside your components */}
       <AuthProvider>
         <BrowserRouter>
           <ThemeProvider theme={theme}>
