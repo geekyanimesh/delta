@@ -11,7 +11,7 @@ import { ClerkProvider } from "@clerk/clerk-react";
 import { AuthProvider } from "./context/AuthContext"; 
 
 // --- FIX 1: Remove quotes around the variable ---
-axios.defaults.baseURL = import.meta.env.VITE_API_URL+"/api/v1"; 
+axios.defaults.baseURL = import.meta.env.VITE_API_URL; 
 axios.defaults.withCredentials = true;
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
