@@ -1,15 +1,9 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+// 1. Fix: Use "type" import for ReactNode to solve the verbatimModuleSyntax error
+import type { ReactNode } from "react";
+// 2. Fix: Import Clerk hooks instead of manual api-communicator functions
+import { useUser, useClerk } from "@clerk/clerk-react";
 
-import {
-  checkAuthStatus,
-} from "../helpers/api-communicator";
-
-// Define User and Auth types
 type User = {
   name: string;
   email: string;
@@ -18,99 +12,67 @@ type User = {
 type UserAuth = {
   isLoggedIn: boolean;
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (name: string, email: string, password: string) => Promise<void>;
+  login: () => Promise<void>;
+  signup: () => Promise<void>;
   logout: () => Promise<void>;
 };
 
-// Create the context
 const AuthContext = createContext<UserAuth | null>(null);
 
-// Provider component
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  // 3. Fix: Use Clerk's hooks to manage state automatically
+  const { user: clerkUser, isSignedIn, isLoaded } = useUser();
+  const clerk = useClerk();
+
   const [user, setUser] = useState<User | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // Check login status on mount
+  // Sync Clerk state with your local app state
   useEffect(() => {
-    async function checkStatus() {
-      try {
-        const data = await checkAuthStatus();
-        if (data) {
-          setUser({ email: data.email, name: data.name });
-          setIsLoggedIn(true);
-        }
-      } catch (error) {
-        console.warn("Not authenticated:", error);
-        setUser(null);
-        setIsLoggedIn(false);
-      }
-    }
-
-    checkStatus();
-  }, []);
-
-  // Login method
-  const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      const data = await loginUser(email, password);
-      if (data) {
-        setUser({ email: data.email, name: data.name });
-        setIsLoggedIn(true);
-        return true;
-      } else {
-        return false;
-      }
-    } catch (error) {
-      console.error("Login failed:", error);
-      return false;
-    }
-  };
-
-  // Signup method
-  const signup = async (
-    name: string,
-    email: string,
-    password: string
-  ): Promise<void> => {
-    try {
-      const data = await signupUser(name, email, password);
-      if (data) {
-        setUser({ email: data.email, name: data.name });
-        setIsLoggedIn(true);
-      }
-    } catch (error) {
-      console.error("Signup failed:", error);
-    }
-  };
-
-  // Logout method
-  const logout = async (): Promise<void> => {
-    try {
-      await logoutUser();
-      setIsLoggedIn(false);
+    if (isLoaded && isSignedIn && clerkUser) {
+      setUser({
+        name: clerkUser.fullName || clerkUser.firstName || "User",
+        email: clerkUser.primaryEmailAddress?.emailAddress || "",
+      });
+      setIsLoggedIn(true);
+    } else {
       setUser(null);
-      window.location.reload();
-    } catch (error) {
-      console.error("Logout failed:", error);
+      setIsLoggedIn(false);
     }
+  }, [isLoaded, isSignedIn, clerkUser]);
+
+  // 4. Fix: Map login/signup/logout to Clerk's functions
+  const login = async () => {
+    // Opens the Clerk Login Modal
+    clerk.openSignIn(); 
   };
 
-  // Context value
+  const signup = async () => {
+    // Opens the Clerk Signup Modal
+    clerk.openSignUp();
+  };
+
+  const logout = async () => {
+    await clerk.signOut();
+    window.location.reload();
+  };
+
   const value: UserAuth = {
     user,
     isLoggedIn,
     login,
-    logout,
     signup,
+    logout,
   };
 
   return (
-    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={value}>
+      {/* Only render children when Clerk is ready to avoid "flickering" */}
+      {isLoaded ? children : null} 
+    </AuthContext.Provider>
   );
 };
 
-// Hook to use the context safely
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

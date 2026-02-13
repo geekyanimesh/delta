@@ -7,9 +7,11 @@ import { BrowserRouter } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import axios from "axios";
 import { ClerkProvider } from "@clerk/clerk-react";
+// Import the AuthProvider we just fixed
+import { AuthProvider } from "./context/AuthContext"; 
 
-// Axios Config
-axios.defaults.baseURL = "import.meta.env.VITE_API_URL";
+// --- FIX 1: Remove quotes around the variable ---
+axios.defaults.baseURL = import.meta.env.VITE_API_URL; 
 axios.defaults.withCredentials = true;
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -27,14 +29,17 @@ const theme = createTheme({
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    {/* ClerkProvider is now the ONLY auth provider */}
     <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
-      <BrowserRouter>
-        <ThemeProvider theme={theme}>
-          <Toaster position="top-right" />
-          <App />
-        </ThemeProvider>
-      </BrowserRouter>
+      {/* --- FIX 2: Wrap App in AuthProvider --- */}
+      {/* This allows useAuth() to work inside your components */}
+      <AuthProvider>
+        <BrowserRouter>
+          <ThemeProvider theme={theme}>
+            <Toaster position="top-right" />
+            <App />
+          </ThemeProvider>
+        </BrowserRouter>
+      </AuthProvider>
     </ClerkProvider>
   </React.StrictMode>
 );
