@@ -2,7 +2,7 @@ import axios from "axios";
 
 // 1. Create a configured Axios instance
 const api = axios.create({
-  baseURL: "http://localhost:5000/api/v1", // Adjust port if needed
+  baseURL: "import.meta.env.VITE_API_URL", // Adjust port if needed
 });
 
 // 2. Helper to attach the token to every request

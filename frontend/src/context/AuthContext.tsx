@@ -1,5 +1,4 @@
 import {
-  ReactNode,
   createContext,
   useContext,
   useEffect,
@@ -7,10 +6,7 @@ import {
 } from "react";
 
 import {
-  loginUser,
   checkAuthStatus,
-  signupUser,
-  logoutUser,
 } from "../helpers/api-communicator";
 
 // Define User and Auth types

@@ -9,7 +9,7 @@ import axios from "axios";
 import { ClerkProvider } from "@clerk/clerk-react";
 
 // Axios Config
-axios.defaults.baseURL = "http://localhost:5000/api/v1";
+axios.defaults.baseURL = "import.meta.env.VITE_API_URL";
 axios.defaults.withCredentials = true;
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
