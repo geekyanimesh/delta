@@ -53,6 +53,7 @@ const Header = () => {
               color: "#ffffff", // Pure white for visibility
               fontWeight: "600",
               fontSize: "17px",
+              font:"Roboto"
             }}
           >
             Log in
@@ -60,6 +61,7 @@ const Header = () => {
           <Link
             to="/signup"
             style={{
+              font:"Roboto",
               textDecoration: "none",
               backgroundColor: "#ffffff", 
               color: "#000000",

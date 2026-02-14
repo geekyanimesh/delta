@@ -18,7 +18,6 @@ export const generateGeminiChatCompletion = async (
 
     const model = configureGemini();
 
-    // Map existing chats to Gemini's expected format
     const history = user.chats.map((chat) => ({
       role: chat.role === "user" ? "user" : "model",
       parts: [{ text: chat.content }],
@@ -26,7 +25,10 @@ export const generateGeminiChatCompletion = async (
 
     const chatSession = model.startChat({
       history: history,
-      systemInstruction: "You are a concise programming assistant. Provide code solutions directly. Do not provide line-by-line explanations or 'How to compile' sections. Use Markdown for all code blocks.",
+      systemInstruction: {
+        role: "system",
+        parts: [{ text: "You are a concise programming assistant. Provide code solutions directly. Do not provide line-by-line explanations or 'How to compile' sections. Use Markdown for all code blocks." }]
+      },
       generationConfig: {
         maxOutputTokens: 2048, 
         temperature: 0.2,      
@@ -36,12 +38,10 @@ export const generateGeminiChatCompletion = async (
     const result = await chatSession.sendMessage(message);
     const responseText = result.response.text();
 
-    // Save to MongoDB
     user.chats.push({ role: "user", content: message });
     user.chats.push({ role: "model", content: responseText });
     await user.save();
 
-    // Return full chats array to keep frontend in sync
     return res.status(200).json({ message: responseText, chats: user.chats });
     
   } catch (error) {
