@@ -12,9 +12,9 @@ const Header = () => {
         top: 0,
         left: 0,
         zIndex: 1000,
-        backgroundColor: "rgba(255, 255, 255, 0.95)",
+        backgroundColor: "rgba(5, 5, 5, 0.8)", 
         backdropFilter: "blur(10px)",
-        borderBottom: "1px solid #eaeaea",
+        borderBottom: "1px solid #27272a", 
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -28,31 +28,32 @@ const Header = () => {
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "12px", // Space between logo and text
+          gap: "12px",
           textDecoration: "none",
         }}
       >
-        {/* --- YOUR CUSTOM LOGO HERE --- */}
         <img 
-            src="/detlaLogo.png" // <--- REPLACE THIS with your actual file name
+            src="/detlaLogo.png" 
             alt="Delta Logo"
             style={{ 
-                height: "122px", // Adjust height to fit navbar
-                width: "auto"   // Auto width keeps aspect ratio
+                height: "150px", // Adjusted for better navbar scaling
+                width: "auto",
+                filter: "invert(1) brightness(2)" // Flips black logo to white
             }} 
         />
       </Link>
 
       {/* RIGHT: Auth Buttons */}
-      <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "40px" }}>
         <SignedOut>
           <Link
             to="/login"
             style={{
               textDecoration: "none",
-              color: "#333",
+              color: "#ffffff", // Pure white for visibility
               fontWeight: "600",
-              fontSize: "15px",
+              fontSize: "17px",
+              font:"Roboto"
             }}
           >
             Log in
@@ -60,12 +61,13 @@ const Header = () => {
           <Link
             to="/signup"
             style={{
+              font:"Roboto",
               textDecoration: "none",
-              backgroundColor: "#000",
-              color: "#fff",
+              backgroundColor: "#ffffff", 
+              color: "#000000",
               padding: "8px 20px",
               borderRadius: "50px",
-              fontSize: "14px",
+              fontSize: "17px",
               fontWeight: "600",
               transition: "opacity 0.2s",
             }}

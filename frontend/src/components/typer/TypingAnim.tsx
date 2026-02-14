@@ -7,7 +7,7 @@ const TypingAnim = () => {
         // Same substring at the start will only be typed once, initially
         "Chat with Delta",
         1000,
-        "Powered by Gemini-2.0",
+        "Powered by Gemini-2.5",
         2000,
         "Experience the Power of AI",
         1500,

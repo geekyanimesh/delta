@@ -2,7 +2,7 @@ import axios from "axios";
 
 export const sendChatRequest = async (message: string) => {
   const res = await axios.post(
-    "http://localhost:5000/api/v1/chat/new", 
+    "import.meta.env.VITE_API_URL", 
     { message }, 
     { withCredentials: true } // Include cookies (token)
   );
